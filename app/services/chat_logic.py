@@ -1,33 +1,44 @@
+import os
+from sqlalchemy.orm import Session
+from sklearn.feature_extraction.text import TfidfVectorizer
+from app.models import schemas, crud
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from datetime import datetime
+import joblib
 
-# 1. Training examples
-training_sentences = [
-    "Hi", "Hello", "Hey there", "Good morning",
-    "Bye", "Goodbye", "See you later", "Catch you later",
-    "What time is it?", "Tell me the current time",
-    "What's the weather?", "Is it going to rain today?"
-]
-training_intents = [
-    "greeting", "greeting", "greeting", "greeting",
-    "goodbye", "goodbye", "goodbye", "goodbye",
-    "ask_time", "ask_time",
-    "ask_weather", "ask_weather"
-]
-
-# 2. Vectorizer + Model setup
 vectorizer = TfidfVectorizer()
-X = vectorizer.fit_transform(training_sentences)
 model = LogisticRegression()
-model.fit(X, training_intents)
 
 
-def get_bot_response(user_message: str) -> str:
+def load_model():
+    global model, vectorizer
+    if os.path.exists("model.pkl") and os.path.exists("vectorizer.pkl"):
+        model = joblib.load("model.pkl")
+        vectorizer = joblib.load("vectorizer.pkl")
+    else:
+        print("Model files not found. Initializing with dummy model")
+        from sklearn.dummy import DummyClassifier
+        model = DummyClassifier(strategy="most_frequent")
+        vectorizer = TfidfVectorizer()
+        vectorizer.fit(["hello", "bye", "time", "weather", "unknown"])
+        model.fit(vectorizer.transform(["hello", "bye", "time", "weather", "unknown"]),
+                  ["greeting", "goodbye", "ask_time", "ask_weather", "fallback"])
+
+
+def get_bot_response(user_message: str, db: Session) -> str:
     user_message = user_message.lower()
+
     X_test = vectorizer.transform([user_message])
     predicted_intent = model.predict(X_test)[0]
-    
+
+    chat_entry = schemas.ChatHistoryCreate(
+        message=user_message,
+        predicted_intent=predicted_intent,
+        timestamp=datetime.utcnow()
+    )
+    crud.create_chat_history(db, chat_entry)
+
     if predicted_intent == "greeting":
         return "Hello! How can I assist you today? :)"
     elif predicted_intent == "goodbye":

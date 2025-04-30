@@ -1,0 +1,20 @@
+folder structure
+\chatty-be
+\-app
+\-\-api
+\-\-\-routes.py
+\-\-core
+\-\-\-config.py
+\-\-models
+\-\-\-crud.py
+\-\-\-db.py
+\-\-\-models.py
+\-\-\-schemas.py
+\-\-services
+\-\-\-chat_logic.py
+\-\-main.py
+\-\-retrain_model.py
+\-alembic
+\-alembic.ini
+\-.env
+\-requirements.txt
