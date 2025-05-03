@@ -31,6 +31,8 @@ def get_bot_response(user_message: str, db: Session) -> str:
 
     X_test = vectorizer.transform([user_message])
     predicted_intent = model.predict(X_test)[0]
+    print(f"Vectorized input: {X_test}")
+    print(f"Predicted Intent: {predicted_intent}")  # Debugging line
 
     chat_entry = schemas.ChatHistoryCreate(
         message=user_message,
